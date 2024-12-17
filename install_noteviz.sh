@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DASHBOARDS_URL="http://192.168.200.141:5601" # opensearch use port 5601 to work with saved objective files
+DASHBOARDS_URL="http://youe_opensearch_url:5601" # opensearch use port 5601 to work with saved objective files
 AUTH_HEADER="username:password"  # Update if needed
 NOTEBOOKS="notebooks.ndjson"
 VIZDASH="vizdash.ndjson"
