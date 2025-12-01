@@ -1,0 +1,46 @@
+# Dependencias principales de la aplicación
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# Base de datos (sqlite3 viene incluido con Python)
+# sqlite3 # Incluido por defecto en Python
+
+# Criptografía
+cryptography==43.0.3
+
+# HTTP requests
+requests==2.31.0
+
+# CAI Framework for security analysis
+cai-framework==0.5.3
+
+# Environment variables management
+python-dotenv==1.0.0
+
+# YAML configuration parsing
+PyYAML==6.0.1
+
+# Testing frameworks
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+pytest-asyncio==0.21.1
+pytest-timeout==2.2.0
+
+# Development and linting tools
+black==23.11.0
+flake8==6.1.0
+isort==5.12.0
+mypy==1.7.1
+
+# CAI additional dependencies (specific versions)
+openai==1.75.0
+anthropic==0.64.0
+litellm[proxy]
+
+# JSON analysis and validation
+jsonschema==4.23.0
+
+# GitLab Pages dashboard generation
+plotly==5.17.0
+jinja2==3.1.2

@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama-server
+  #   ports:
+  #     - "${OLLAMA_PORT:-11434}:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   environment:
+  #     - OLLAMA_HOST=0.0.0.0
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "ollama", "list"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   networks:
+  #     - dfir_network
+
+  cai-framework:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cai-dfir-container
+    ports:
+      - "5000:5000"
+    # depends_on:
+    #   ollama:
+    #     condition: service_healthy
+    # Network configuration: use bridge network for Ollama access
+    # networks:
+    #   - dfir_network
+    volumes:
+      - ./html_template/html_report_template.html:/app/html_report_template.html:ro
+      - ./agents:/app/agents:ro
+      - ./test_data:/app/test_data
+      - ./dfir_reports:/app/dfir_reports
+      - ./logs:/app/logs
+      - ./.env:/app/.env:ro
+      - ./frontend:/app/frontend:ro
+      - ./main.py:/app/main.py:ro
+    environment:
+      # Load all variables from .env file
+      - CAI_MODEL=${CAI_MODEL:-alias1}
+      # Ollama configuration (only used if CAI_MODEL=ollama)
+      - OLLAMA_API_BASE=${OLLAMA_API_BASE:-http://ollama:11434/v1}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:1b}
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY:-ollama}
+      # External API configuration (used if CAI_MODEL=alias1 or other)
+      - OPENAI_API_BASE=${OPENAI_API_BASE:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ALIAS_API_KEY=${ALIAS_API_KEY:-}
+      # Optional API keys for enhanced capabilities
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY:-}
+      - SHODAN_API_KEY=${SHODAN_API_KEY:-}
+      - GOOGLE_SEARCH_API_KEY=${GOOGLE_SEARCH_API_KEY:-}
+      - GOOGLE_SEARCH_CX=${GOOGLE_SEARCH_CX:-}
+    restart: unless-stopped
+    command: ["bash", "/app/start_frontend.sh"]
+
+# volumes:
+#   ollama_data:
+
+# networks:
+#   dfir_network:
+#     driver: bridge

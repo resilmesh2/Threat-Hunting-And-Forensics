@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFIR Report Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-bg: #1e293b;
+            --light-bg: #f8fafc;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container {
+            padding: 2rem 0;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            margin-bottom: 2rem;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color), #7c3aed);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), #7c3aed);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+        }
+        
+        .file-upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s;
+            background: var(--light-bg);
+            cursor: pointer;
+        }
+        
+        .file-upload-area:hover {
+            border-color: var(--primary-color);
+            background: #f1f5f9;
+        }
+        
+        .file-upload-area.dragover {
+            border-color: var(--primary-color);
+            background: #e0e7ff;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-indicator.running {
+            background: var(--warning-color);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-indicator.success {
+            background: var(--success-color);
+        }
+        
+        .status-indicator.error {
+            background: var(--danger-color);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .alert-custom {
+            border-radius: 10px;
+            border-left: 4px solid;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-warning-custom {
+            background: #fef3c7;
+            border-left-color: var(--warning-color);
+            color: #92400e;
+        }
+        
+        .alert-error-custom {
+            background: #fee2e2;
+            border-left-color: var(--danger-color);
+            color: #991b1b;
+        }
+        
+        .progress-container {
+            margin: 1.5rem 0;
+        }
+        
+        .report-preview {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            max-height: 600px;
+            overflow: auto;
+            background: white;
+        }
+        
+        .log-message {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .log-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .log-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .log-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .btn-refresh {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: all 0.3s;
+        }
+        
+        .btn-refresh:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(180deg);
+        }
+        
+        .btn-refresh:active {
+            transform: rotate(360deg);
+        }
+        
+        .btn-refresh.refreshing {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container main-container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <!-- Header Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="mb-0">
+                            <i class="bi bi-shield-check"></i> DFIR Report Generator
+                        </h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Digital forensics analysis and incident investigation system</p>
+                    </div>
+                </div>
+
+                <!-- Upload Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-cloud-upload"></i> Upload File</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="file-upload-area" id="uploadArea">
+                            <input type="file" id="fileInput" class="d-none" accept=".json,.txt,.log,.csv,.xml">
+                            <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #64748b;"></i>
+                            <p class="mt-3 mb-0">
+                                <strong>Click or drag a file here</strong>
+                            </p>
+                            <p class="text-muted small">Supported formats: JSON, TXT, LOG, CSV, XML (max. 50MB)</p>
+                        </div>
+                        <div id="fileInfo" class="mt-3" style="display: none;">
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle"></i> 
+                                <strong id="fileName"></strong> uploaded successfully
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Configuration -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-gear"></i> Analysis Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="incidentTitle" class="form-label">Incident Title</label>
+                            <input type="text" class="form-control" id="incidentTitle" 
+                                   value="DFIR Analysis Report" placeholder="E.g: Wazuh ICS Security Incident">
+                        </div>
+                        <div class="mb-3">
+                            <label for="userPrompt" class="form-label">Analysis Prompt (Optional)</label>
+                            <textarea class="form-control" id="userPrompt" rows="3" 
+                                      placeholder="Leave empty to use the default Wazuh analysis prompt"></textarea>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" id="analyzeDfirBtn" onclick="startDfirAnalysis()">
+                                <i class="bi bi-search"></i> Run DFIR Analysis
+                            </button>
+                            <button class="btn btn-success" id="generateReportBtn" onclick="generateReport()" disabled>
+                                <i class="bi bi-file-earmark-text"></i> Generate HTML Report
+                            </button>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i> 
+                                First run the DFIR analysis, then generate the HTML report
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Card -->
+                <div class="card" id="statusCard" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-activity"></i> Analysis Status
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <span class="status-indicator" id="statusIndicator"></span>
+                            <strong id="statusText">Waiting...</strong>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     id="progressBar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <p class="text-center mt-2 mb-0" id="progressText">Starting...</p>
+                        </div>
+                        
+                        <!-- Warnings and Errors -->
+                        <div id="warningsContainer"></div>
+                        <div id="errorsContainer"></div>
+                        
+                        <!-- Logs -->
+                        <div id="logsContainer" style="max-height: 300px; overflow-y: auto; margin-top: 1rem;">
+                            <h6>Real-time Logs:</h6>
+                            <div id="logsContent"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports Card -->
+                <div class="card" id="reportsCard" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Generated Reports</h5>
+                        <button class="btn btn-refresh" id="refreshReportsBtn" onclick="refreshReports()" title="Refresh reports list">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="reportsList"></div>
+                        <div id="reportPreview" class="report-preview mt-3" style="display: none;">
+                            <iframe id="reportFrame" style="width: 100%; height: 600px; border: none;"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentFilePath = null;
+        let statusCheckInterval = null;
+        let logsCheckInterval = null;
+
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentFilePath = data.path;
+                    fileName.textContent = data.filename;
+                    fileInfo.style.display = 'block';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error uploading file');
+            });
+        }
+
+        function startDfirAnalysis() {
+            if (!currentFilePath) {
+                alert('Please upload a file first');
+                return;
+            }
+
+            // Note: userPrompt field is kept for UX but not used in analysis
+            // const userPrompt = document.getElementById('userPrompt').value || null;
+
+            document.getElementById('analyzeDfirBtn').disabled = true;
+            document.getElementById('statusCard').style.display = 'block';
+            document.getElementById('statusIndicator').className = 'status-indicator running';
+            document.getElementById('statusText').textContent = 'Running DFIR analysis...';
+            document.getElementById('progressBar').style.width = '10%';
+            document.getElementById('warningsContainer').innerHTML = '';
+            document.getElementById('errorsContainer').innerHTML = '';
+            document.getElementById('logsContent').innerHTML = '';
+
+            fetch('/analyze-dfir', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    file_path: currentFilePath
+                    // user_prompt is intentionally omitted - field kept for UX only
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    startStatusCheck();
+                    startLogsCheck();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                    document.getElementById('analyzeDfirBtn').disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const errorMsg = error.error || error.message || 'Error starting DFIR analysis';
+                alert('Error: ' + errorMsg);
+                document.getElementById('analyzeDfirBtn').disabled = false;
+            });
+        }
+
+        function generateReport() {
+            const incidentTitle = document.getElementById('incidentTitle').value || 'DFIR Analysis Report';
+
+            document.getElementById('generateReportBtn').disabled = true;
+            document.getElementById('statusCard').style.display = 'block';
+            document.getElementById('statusIndicator').className = 'status-indicator running';
+            document.getElementById('statusText').textContent = 'Generating HTML report...';
+            document.getElementById('progressBar').style.width = '50%';
+            document.getElementById('warningsContainer').innerHTML = '';
+            document.getElementById('errorsContainer').innerHTML = '';
+            document.getElementById('logsContent').innerHTML = '';
+
+            fetch('/generate-report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    incident_title: incidentTitle
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    startStatusCheck();
+                    startLogsCheck();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                    document.getElementById('generateReportBtn').disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const errorMsg = error.error || error.message || 'Error generating report';
+                alert('Error: ' + errorMsg);
+                document.getElementById('generateReportBtn').disabled = false;
+            });
+        }
+
+        function startStatusCheck() {
+            if (statusCheckInterval) clearInterval(statusCheckInterval);
+            
+            statusCheckInterval = setInterval(() => {
+                fetch('/status')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateStatus(data);
+                        
+                        if (!data.running) {
+                            clearInterval(statusCheckInterval);
+                            
+                            // Enable buttons based on current step
+                            if (data.current_step === 'DFIR Completed' || data.dfir_analysis_ready) {
+                                document.getElementById('analyzeDfirBtn').disabled = false;
+                                document.getElementById('generateReportBtn').disabled = false;
+                            } else if (data.current_step === 'Completed') {
+                                document.getElementById('generateReportBtn').disabled = false;
+                                if (data.report_path) {
+                                    loadReports();
+                                }
+                            } else {
+                                document.getElementById('analyzeDfirBtn').disabled = false;
+                                document.getElementById('generateReportBtn').disabled = false;
+                            }
+                        }
+                    })
+                    .catch(error => console.error('Error checking status:', error));
+            }, 2000);
+        }
+
+        function startLogsCheck() {
+            if (logsCheckInterval) clearInterval(logsCheckInterval);
+            
+            logsCheckInterval = setInterval(() => {
+                fetch('/logs')
+                    .then(response => response.json())
+                    .then(logs => {
+                        logs.forEach(log => {
+                            addLogMessage(log.type, log.message);
+                        });
+                    })
+                    .catch(error => console.error('Error checking logs:', error));
+            }, 1000);
+        }
+
+        function updateStatus(status) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+
+            if (status.running) {
+                indicator.className = 'status-indicator running';
+                if (status.current_step === 'DFIR Analysis') {
+                    statusText.textContent = 'Running DFIR analysis...';
+                    progressBar.style.width = '30%';
+                } else if (status.current_step === 'Report Generation') {
+                    statusText.textContent = 'Generating HTML report...';
+                    progressBar.style.width = '70%';
+                } else {
+                    statusText.textContent = 'Running...';
+                    progressBar.style.width = '50%';
+                }
+            } else if (status.report_path) {
+                indicator.className = 'status-indicator success';
+                statusText.textContent = 'Report generated successfully';
+                progressBar.className = 'progress-bar bg-success';
+                progressBar.style.width = '100%';
+            } else if (status.dfir_analysis_ready || status.current_step === 'DFIR Completed') {
+                indicator.className = 'status-indicator success';
+                statusText.textContent = 'DFIR analysis completed - Ready to generate report';
+                progressBar.className = 'progress-bar bg-info';
+                progressBar.style.width = '50%';
+            } else if (status.errors.length > 0) {
+                indicator.className = 'status-indicator error';
+                statusText.textContent = 'Error in process';
+                progressBar.className = 'progress-bar bg-danger';
+                progressBar.style.width = '100%';
+            }
+
+            progressText.textContent = status.progress || status.current_step || 'Waiting...';
+
+            // Show warnings
+            const warningsContainer = document.getElementById('warningsContainer');
+            if (status.warnings && status.warnings.length > 0) {
+                warningsContainer.innerHTML = status.warnings.map(warning => 
+                    `<div class="alert alert-warning-custom alert-custom">
+                        <i class="bi bi-exclamation-triangle"></i> ${warning}
+                    </div>`
+                ).join('');
+            }
+
+            // Show errors
+            const errorsContainer = document.getElementById('errorsContainer');
+            if (status.errors && status.errors.length > 0) {
+                errorsContainer.innerHTML = status.errors.map(error => 
+                    `<div class="alert alert-error-custom alert-custom">
+                        <i class="bi bi-x-circle"></i> ${error}
+                    </div>`
+                ).join('');
+            }
+        }
+
+        function addLogMessage(type, message) {
+            const logsContent = document.getElementById('logsContent');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-message log-${type}`;
+            logDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logsContent.appendChild(logDiv);
+            logsContent.scrollTop = logsContent.scrollHeight;
+        }
+
+        function loadReports() {
+            fetch('/reports')
+                .then(response => response.json())
+                .then(reports => {
+                    const reportsCard = document.getElementById('reportsCard');
+                    const reportsList = document.getElementById('reportsList');
+                    
+                    if (reports.length > 0) {
+                        reportsCard.style.display = 'block';
+                        reportsList.innerHTML = reports.map(report => 
+                            `<div class="card mb-2">
+                                <div class="card-body">
+                                    <h6>${report.name}</h6>
+                                    <p class="text-muted small mb-2">Modified: ${new Date(report.modified).toLocaleString()}</p>
+                                    <button class="btn btn-sm btn-primary" onclick="viewReport('${report.name}')">
+                                        <i class="bi bi-eye"></i> View Report
+                                    </button>
+                                </div>
+                            </div>`
+                        ).join('');
+                    } else {
+                        reportsCard.style.display = 'block';
+                        reportsList.innerHTML = '<p class="text-muted text-center">No reports available yet.</p>';
+                    }
+                })
+                .catch(error => console.error('Error loading reports:', error));
+        }
+
+        function refreshReports() {
+            const refreshBtn = document.getElementById('refreshReportsBtn');
+            refreshBtn.classList.add('refreshing');
+            refreshBtn.disabled = true;
+            
+            loadReports();
+            
+            // Stop animation after a short delay
+            setTimeout(() => {
+                refreshBtn.classList.remove('refreshing');
+                refreshBtn.disabled = false;
+            }, 500);
+        }
+
+        function viewReport(filename) {
+            const reportFrame = document.getElementById('reportFrame');
+            const reportPreview = document.getElementById('reportPreview');
+            reportFrame.src = `/report/${filename}`;
+            reportPreview.style.display = 'block';
+            reportPreview.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Load reports on page load
+        window.addEventListener('load', () => {
+            loadReports();
+        });
+    </script>
+</body>
+</html>
