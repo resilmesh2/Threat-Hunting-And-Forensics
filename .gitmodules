@@ -1,0 +1,3 @@
+[submodule "DFIR"]
+	path = DFIR
+	url = https://github.com/Resilmesh-EU/DFIR
