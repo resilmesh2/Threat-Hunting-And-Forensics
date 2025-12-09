@@ -1,3 +1,6 @@
 [submodule "DFIR"]
 	path = DFIR
 	url = https://github.com/Resilmesh-EU/DFIR
+[submodule "THF"]
+	path = THF
+	url = https://github.com/resilmesh2/THF
